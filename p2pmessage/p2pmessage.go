@@ -53,9 +53,7 @@ var (
 // encryption
 var (
 	symKey   []byte
-	pub      *ecdsa.PublicKey
 	asymKey  *ecdsa.PrivateKey
-	nodeid   *ecdsa.PrivateKey
 	topic    whisper.TopicType
 	filterID string
 )
@@ -86,8 +84,8 @@ func initialize() {
 		peer := discover.MustParseNode(node)
 		peers = append(peers, peer)
 	}
-	//peer := discover.MustParseNode("enode://b89172e36cb79202dd0c0822d4238b7a7ddbefe8aa97489049c9afe68f71b10c5c9ce588ef9b5df58939f982c718c59243cc5add6cebf3321b88d752eac02626@182.254.155.208:30303")
-	//peers = append(peers, peer)
+	peer := discover.MustParseNode("enode://b89172e36cb79202dd0c0822d4238b7a7ddbefe8aa97489049c9afe68f71b10c5c9ce588ef9b5df58939f982c718c59243cc5add6cebf3321b88d752eac02626@182.254.155.208:33333")
+	peers = append(peers, peer)
 	shh = whisper.New()
 
 	asymKeyID, err = shh.NewKeyPair()
@@ -100,25 +98,13 @@ func initialize() {
 		utils.Fatalf("Failed to retrieve a new key pair: %s", err)
 	}
 
-	if nodeid == nil {
-		tmpID, err := shh.NewKeyPair()
-		if err != nil {
-			utils.Fatalf("Failed to generate a new key pair: %s", err)
-		}
-
-		nodeid, err = shh.GetPrivateKey(tmpID)
-		if err != nil {
-			utils.Fatalf("Failed to retrieve a new key pair: %s", err)
-		}
-	}
-
 	maxPeers := 80
 
 	server = &p2p.Server{
 		Config: p2p.Config{
-			PrivateKey:     nodeid,
+			PrivateKey:     asymKey,
 			MaxPeers:       maxPeers,
-			Name:           common.MakeName("wnode", "5.0"),
+			Name:           common.MakeName("p2p chat group", "5.0"),
 			Protocols:      shh.Protocols(),
 			NAT:            nat.Any(),
 			BootstrapNodes: peers,
@@ -213,7 +199,6 @@ func sendLoop() {
 func sendMsg(payload []byte) common.Hash {
 	params := whisper.MessageParams{
 		Src:      asymKey,
-		Dst:      pub,
 		KeySym:   symKey,
 		Payload:  payload,
 		Topic:    topic,
